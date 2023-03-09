@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+    <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <title>Force Layout Nodes</title>
+            <script src="https://d3js.org/d3.v7.min.js"></script>
+            
+        </head>
+        <body>
+            <div class="txt1" style="font-size: 28px;"></div>
+            <svg width="100vw" height="100vh" viewBox="0 0 1200 1200">
+            </svg>
+            <style>
+                .inactive{fill-opacity: .15;
+                            stroke-opacity: .25;}
+               
+
+            </style>
+            
+            <script>
+                const width = 1200
+                const height = 1200
+                d3.json("https://raw.githubusercontent.com/mshea12/week7-568/main/data.JSON").then(data=>{
+
+                    console.log(data)
+                    
+                    let gCanvas = d3.select("svg").append("g").attr("class","canvas")
+                   
+                    
+
+                    let degrees ={}
+                    d3.map(data.links, function(d){
+                        if(degrees.hasOwnProperty(d.source))
+                        {
+                            degrees[d.source]++
+                        }
+                        else {
+                            degrees[d.source]=0
+                        }
+                        if(degrees.hasOwnProperty(d.target))
+                        {
+                            degrees[d.target]++
+                        }
+                        else {
+                            degrees[d.target]=0
+                        }
+
+
+                    })
+
+
+                   
+                    const color_domain = d3.map(data.nodes,function(d){return d.First_author_Country})
+                    cd = d3.extent(color_domain)
+                    console.log((cd))
+                    let color = d3.scaleOrdinal(d3.schemeCategory10).domain(cd)
+                    
+                    let scale_radius = d3.scaleLinear()
+                                        .domain(d3.extent(Object.values(degrees)))
+                                        .range([5,18])
+
+                    let scale_radius_sqt = d3.scaleSqrt().domain([0,200]).range([5,18])
+
+                    let gLinks = gCanvas.selectAll('.links')
+                        .data(data.links)
+                        .enter()    
+                        .append("line").attr("stroke","black")
+
+                    let gNodes= gCanvas.selectAll()
+                        .data(data.nodes)
+                        .enter()
+                        .append('g')
+                        
+                    gNodes.append("circle").attr("r",function(d,i){
+                        if (d.Citations!=undefined) {
+                            return scale_radius_sqt(d.Citations)
+                        }
+                        else {return scale_radius(0)}
+
+                    })
+                        .attr("fill",d=>color(d.First_author_Country))
+                        .attr("class",d=>d.First_author_Country)
+
+                       
+                        
+                    gNodes.on("mouseenter", function (m,d) {
+                            
+                            d3.selectAll("circle").classed("inactive", true)
+                            d3.selectAll("line").classed("inactive", true)
+                            d3.selectAll('.'+d.First_author_Country).classed("inactive", false)
+                            d3.select(".txt1").text(d.First_author_Country)
+                           
+                    })
+                            
+
+                    gNodes.on("mouseleave", function (m,d) {
+                           
+                            d3.selectAll("circle").classed("inactive", false).duration('200')
+                            d3.selectAll("line").classed("inactive", false).duration('200')
+                            d3.select(".txt1").text("").attr("x",1500).attr("y",200)
+                            
+                             })    
+
+
+                    
+                    let fSim = d3.forceSimulation(data.nodes)
+                                .force('center', d3.forceCenter(width/2, height/2))
+                                .force('links', d3.forceLink(data.links).id(function(n) {return n.id; }))
+                                .force("collide",d3.forceCollide().radius(function(d,i){return scale_radius_sqt((d.Citations)*1.5)}))
+                                .force('charge', d3.forceManyBody().strength(-5))
+                                .on('tick', update)
+                               
+
+                    function update () {
+                        
+                        gNodes.attr("transform", d => {
+                            
+                            return `translate (${d.x}, ${d.y})`
+                        })
+                         
+
+                         gLinks.attr('x1', d=>d.source.x)
+                                .attr('x2', d=> d.target.x)
+                                .attr('y1', d=>d.source.y)
+                                .attr('y2', d=> d.target.y) 
+                        
+                    
+
+                    }
+
+                        
+
+                    
+
+                  })
+                 
+                 
+            </script>
+            
+
+
+
+
+
+        </body>
+
+        
+
+
+
+
+
+
+
+
+
+    </html>
